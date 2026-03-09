@@ -406,10 +406,10 @@ const BaseEventSchema = z.object({
         })
         .passthrough(),
     )
-    .optional(),
+    .nullish(),
   // "context" (singular) is the legacy "extra" field for arbitrary user-defined data
   // This is different from "contexts" (plural) which are structured contexts
-  context: z.record(z.string(), z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).nullish(),
   tags: EventTagsSchema.optional(),
   // The _meta field contains metadata about fields in the response
   // It's safer to type as unknown since its structure varies

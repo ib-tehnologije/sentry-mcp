@@ -372,6 +372,30 @@ describe("EventSchema", () => {
     expect(result.type).toBe("transaction");
   });
 
+  it("should parse events with null context fields", () => {
+    const glitchTipEvent = {
+      id: "abc123",
+      title: "TypeError: Cannot read property 'x'",
+      message: "Cannot read property 'x' of undefined",
+      platform: "javascript",
+      type: "error",
+      entries: [],
+      contexts: {
+        trace: {
+          type: "trace",
+          trace_id: "abc123",
+        },
+      },
+      context: null,
+      culprit: "app.js",
+      dateCreated: "2025-01-01T00:00:00Z",
+    };
+
+    const result = EventSchema.parse(glitchTipEvent);
+    expect(result.type).toBe("error");
+    expect(result.context).toBeNull();
+  });
+
   it("should ignore malformed tags with null keys", () => {
     const eventWithMalformedTag = {
       id: "abc123",
