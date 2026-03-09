@@ -52,7 +52,7 @@ export default defineTool({
       return output;
     }
     for (const clientKey of clientKeys) {
-      output += `## ${clientKey.name}\n`;
+      output += `## ${clientKey.name || String(clientKey.id)}\n`;
       output += `**ID**: ${clientKey.id}\n`;
       output += `**DSN**: ${clientKey.dsn.public}\n\n`;
     }

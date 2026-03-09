@@ -45,6 +45,10 @@
       "types": "./dist/permissions.ts",
       "default": "./dist/permissions.js"
     },
+    "./provider": {
+      "types": "./dist/provider.ts",
+      "default": "./dist/provider.js"
+    },
     "./skills": {
       "types": "./dist/skills.ts",
       "default": "./dist/skills.js"

@@ -200,6 +200,13 @@ if (!resolvedProvider) {
   console.warn("");
 }
 
+if (cfg.apiProvider === "glitchtip") {
+  console.warn(
+    "GlitchTip compatibility mode enabled. Unsupported Sentry-only tools are hidden automatically.",
+  );
+  console.warn("");
+}
+
 Sentry.init({
   dsn: cfg.sentryDsn,
   sendDefaultPii: true,
@@ -207,6 +214,7 @@ Sentry.init({
   beforeSend: sentryBeforeSend,
   initialScope: {
     tags: {
+      "api.provider": cfg.apiProvider,
       "mcp.server_version": LIB_VERSION,
       "mcp.transport": "stdio",
       "mcp.agent_mode": cli.agent ? "true" : "false",
@@ -279,6 +287,7 @@ const context = {
     organizationSlug: cfg.organizationSlug ?? null,
     projectSlug: cfg.projectSlug ?? null,
   },
+  apiProvider: cfg.apiProvider,
   sentryHost: cfg.sentryHost,
   mcpUrl: cfg.mcpUrl,
   openaiBaseUrl: cfg.openaiBaseUrl,

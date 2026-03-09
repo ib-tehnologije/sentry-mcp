@@ -105,6 +105,9 @@ export default defineTool({
       organizationSlug: params.organizationSlug,
       projectSlugOrId: params.projectSlugOrId ?? undefined,
       query: params.query,
+      host: params.regionUrl
+        ? new URL(params.regionUrl).host
+        : context.sentryHost,
       regionUrl: params.regionUrl ?? undefined,
     });
   },

@@ -27,6 +27,7 @@ import type {
 import tools, {
   AGENT_DEPENDENT_TOOLS,
   SIMPLE_REPLACEMENT_TOOLS,
+  UNSUPPORTED_TOOLS_BY_PROVIDER,
 } from "./tools/index";
 import {
   type ToolConfig,
@@ -157,6 +158,19 @@ function configureServer({
         ([key]) => !toolsToExclude.has(key),
       ),
     ) as typeof toolsToRegister;
+  }
+
+  if (!customTools && context.apiProvider) {
+    const providerUnsupportedTools = new Set<string>(
+      UNSUPPORTED_TOOLS_BY_PROVIDER[context.apiProvider] ?? [],
+    );
+    if (providerUnsupportedTools.size > 0) {
+      toolsToRegister = Object.fromEntries(
+        Object.entries(toolsToRegister).filter(
+          ([key]) => !providerUnsupportedTools.has(key),
+        ),
+      ) as typeof toolsToRegister;
+    }
   }
 
   // Filter tools based on experimental mode (applies to all tools, including custom)

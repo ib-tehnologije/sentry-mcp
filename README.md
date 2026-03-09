@@ -55,6 +55,11 @@ npx @sentry/mcp-server@latest --access-token=sentry-user-token
 Need to connect to a self-hosted deployment? Add <code>--host</code> (hostname
 only, e.g. <code>--host=sentry.example.com</code>) when you run the command.
 
+Running against GlitchTip? Set <code>--provider=glitchtip</code> (or
+<code>SENTRY_PROVIDER=glitchtip</code>) to enable GlitchTip compatibility mode.
+When the hostname contains <code>glitchtip</code>, the CLI also auto-detects
+this mode. Unsupported Sentry-only tools are hidden automatically.
+
 Some features (like Seer) may not be available on self-hosted instances. You can
 disable specific skills to prevent unsupported tools from being exposed:
 
@@ -74,6 +79,7 @@ ANTHROPIC_API_KEY=           # Required if using Anthropic
 
 # Optional overrides
 SENTRY_HOST=                 # For self-hosted deployments
+SENTRY_PROVIDER=             # Optional: 'sentry' or 'glitchtip'
 MCP_DISABLE_SKILLS=          # Disable specific skills (comma-separated, e.g. 'seer')
 ```
 
@@ -112,6 +118,24 @@ For self-hosted instances that don't support Seer:
         "SENTRY_ACCESS_TOKEN": "your-token",
         "SENTRY_HOST": "sentry.example.com",
         "MCP_DISABLE_SKILLS": "seer"
+      }
+    }
+  }
+}
+```
+
+For GlitchTip deployments:
+
+```json
+{
+  "mcpServers": {
+    "glitchtip": {
+      "command": "npx",
+      "args": ["@sentry/mcp-server"],
+      "env": {
+        "SENTRY_ACCESS_TOKEN": "your-token",
+        "SENTRY_HOST": "glitchtip.example.com",
+        "SENTRY_PROVIDER": "glitchtip"
       }
     }
   }

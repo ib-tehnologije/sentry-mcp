@@ -456,4 +456,24 @@ describe("buildServer", () => {
       expect(toolNames).toContain("whoami");
     });
   });
+
+  describe("provider-specific tool filtering", () => {
+    it("hides unsupported tools in glitchtip mode", () => {
+      const server = buildServer({
+        context: {
+          ...baseContext,
+          apiProvider: "glitchtip",
+          sentryHost: "glitchtip.example.com",
+        },
+      });
+
+      const toolNames = getRegisteredToolNames(server);
+      expect(toolNames).toContain("whoami");
+      expect(toolNames).toContain("list_issues");
+      expect(toolNames).toContain("list_issue_events");
+      expect(toolNames).not.toContain("search_docs");
+      expect(toolNames).not.toContain("list_events");
+      expect(toolNames).not.toContain("get_trace_details");
+    });
+  });
 });

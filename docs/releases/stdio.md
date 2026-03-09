@@ -126,13 +126,17 @@ Add to `.cursor/mcp.json`:
 }
 ```
 
+For GlitchTip deployments, add `SENTRY_PROVIDER=glitchtip`. The stdio server
+also auto-detects GlitchTip mode when the host contains `glitchtip`.
+
 ## Environment Variables
 
 Required:
 - `SENTRY_ACCESS_TOKEN` - Sentry API access token
-- `SENTRY_HOST` - Sentry instance hostname (default: `sentry.io`)
 
 Optional:
+- `SENTRY_HOST` - Sentry instance hostname (default: `sentry.io`)
+- `SENTRY_PROVIDER` - API compatibility mode: `sentry` or `glitchtip`
 - `SENTRY_ORG` - Default organization slug
 - `SENTRY_PROJECT` - Default project slug
 - `MCP_DISABLE_SKILLS` - Disable specific skills, comma-separated (e.g. `seer`)

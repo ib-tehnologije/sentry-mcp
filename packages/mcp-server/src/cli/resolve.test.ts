@@ -15,6 +15,36 @@ describe("cli/finalize", () => {
       unknownArgs: [],
     });
     expect(cfg.sentryHost).toBe("sentry.example.com");
+    expect(cfg.apiProvider).toBe("sentry");
+  });
+
+  it("auto-detects glitchtip provider from host", () => {
+    const cfg = finalize({
+      accessToken: "tok",
+      host: "glitchtip.example.com",
+      unknownArgs: [],
+    });
+    expect(cfg.apiProvider).toBe("glitchtip");
+  });
+
+  it("allows explicit provider override", () => {
+    const cfg = finalize({
+      accessToken: "tok",
+      provider: "glitchtip",
+      host: "sentry.example.com",
+      unknownArgs: [],
+    });
+    expect(cfg.apiProvider).toBe("glitchtip");
+  });
+
+  it("rejects invalid providers", () => {
+    expect(() =>
+      finalize({
+        accessToken: "tok",
+        provider: "other",
+        unknownArgs: [],
+      }),
+    ).toThrow(/Invalid provider/);
   });
 
   it("accepts valid OpenAI base URL", () => {

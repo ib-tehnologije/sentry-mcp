@@ -1695,7 +1695,9 @@ export function formatIssueOutput({
   externalIssues?: ExternalIssueList;
   experimentalMode?: boolean;
 }) {
-  let output = `# Issue ${issue.shortId} in **${organizationSlug}**\n\n`;
+  const issueIdentifier =
+    issue.shortId.trim().length > 0 ? issue.shortId : String(issue.id);
+  let output = `# Issue ${issueIdentifier} in **${organizationSlug}**\n\n`;
 
   // Check if this is a performance issue based on issueCategory or issueType
   // Performance issues can have various categories like 'db_query' but issueType starts with 'performance_'
@@ -1757,7 +1759,7 @@ export function formatIssueOutput({
 
   output += `**Platform**: ${issue.platform}\n`;
   output += `**Project**: ${issue.project.name}\n`;
-  output += `**URL**: ${apiService.getIssueUrl(organizationSlug, issue.shortId)}\n`;
+  output += `**URL**: ${apiService.getIssueUrl(organizationSlug, issueIdentifier)}\n`;
   output += "\n";
   output += "## Event Details\n\n";
 
@@ -1782,7 +1784,7 @@ export function formatIssueOutput({
             event_id: event.id,
             event_type: eventType,
             issue_id: issue.id,
-            issue_short_id: issue.shortId,
+            issue_short_id: issueIdentifier,
             organization_slug: organizationSlug,
             project_slug: issue.project.slug,
           },
@@ -1846,12 +1848,12 @@ export function formatIssueOutput({
   }
 
   output += "# Using this information\n\n";
-  output += `- You can reference the IssueID in commit messages (e.g. \`Fixes ${issue.shortId}\`) to automatically close the issue when the commit is merged.\n`;
+  output += `- You can reference the IssueID in commit messages (e.g. \`Fixes ${issueIdentifier}\`) to automatically close the issue when the commit is merged.\n`;
   output +=
     "- The stacktrace includes both first-party application code as well as third-party code, its important to triage to first-party code.\n";
-  output += `- To search for specific occurrences or filter events within this issue, use \`search_issue_events(organizationSlug='${organizationSlug}', issueId='${issue.shortId}', naturalLanguageQuery='your query')\`\n`;
+  output += `- To search for specific occurrences or filter events within this issue, use \`search_issue_events(organizationSlug='${organizationSlug}', issueId='${issueIdentifier}', naturalLanguageQuery='your query')\`\n`;
   if (experimentalMode) {
-    output += `- To see the trail of events leading up to this error, use \`get_sentry_resource(url='${apiService.getIssueUrl(organizationSlug, issue.shortId)}', resourceType='breadcrumbs')\`\n`;
+    output += `- To see the trail of events leading up to this error, use \`get_sentry_resource(url='${apiService.getIssueUrl(organizationSlug, issueIdentifier)}', resourceType='breadcrumbs')\`\n`;
   }
   return output;
 }

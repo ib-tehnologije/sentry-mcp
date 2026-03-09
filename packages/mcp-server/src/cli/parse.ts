@@ -4,6 +4,7 @@ import type { CliArgs, EnvArgs, MergedArgs } from "./types";
 export function parseArgv(argv: string[]): CliArgs {
   const options = {
     "access-token": { type: "string" as const },
+    provider: { type: "string" as const },
     host: { type: "string" as const },
     url: { type: "string" as const },
     "mcp-url": { type: "string" as const },
@@ -52,6 +53,7 @@ export function parseArgv(argv: string[]): CliArgs {
 
   return {
     accessToken: values["access-token"] as string | undefined,
+    provider: values.provider as string | undefined,
     host: values.host as string | undefined,
     url: values.url as string | undefined,
     mcpUrl: values["mcp-url"] as string | undefined,
@@ -77,6 +79,7 @@ export function parseArgv(argv: string[]): CliArgs {
 export function parseEnv(env: NodeJS.ProcessEnv): EnvArgs {
   const fromEnv: EnvArgs = {};
   if (env.SENTRY_ACCESS_TOKEN) fromEnv.accessToken = env.SENTRY_ACCESS_TOKEN;
+  if (env.SENTRY_PROVIDER) fromEnv.provider = env.SENTRY_PROVIDER;
   if (env.SENTRY_URL) fromEnv.url = env.SENTRY_URL;
   if (env.SENTRY_HOST) fromEnv.host = env.SENTRY_HOST;
   if (env.MCP_URL) fromEnv.mcpUrl = env.MCP_URL;
@@ -96,6 +99,7 @@ export function merge(cli: CliArgs, env: EnvArgs): MergedArgs {
   // CLI wins over env
   return {
     accessToken: cli.accessToken ?? env.accessToken,
+    provider: cli.provider ?? env.provider,
     // If CLI provided url/host, prefer those; else fall back to env
     url: cli.url ?? env.url,
     host: cli.host ?? env.host,

@@ -29,6 +29,7 @@ export function apiServiceFromContext(
 
   return new SentryApiService({
     host,
+    provider: context.apiProvider,
     accessToken: context.accessToken,
   });
 }

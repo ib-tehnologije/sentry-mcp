@@ -1,5 +1,7 @@
 import type { Issue } from "../../api-client";
 import { logInfo } from "../../telem/logging";
+import { getIssueIdentifier } from "../../internal/issue-helpers";
+import { detectApiProvider } from "../../provider";
 import { getIssueUrl, getIssuesSearchUrl } from "../../utils/url-utils";
 import { getSeerActionabilityLabel } from "../../internal/formatting";
 
@@ -16,6 +18,7 @@ export interface FormatIssueResultsParams {
   projectSlugOrId?: string;
   query?: string | null;
   regionUrl?: string;
+  host?: string;
   naturalLanguageQuery?: string;
   skipHeader?: boolean;
 }
@@ -30,11 +33,15 @@ export function formatIssueResults(params: FormatIssueResultsParams): string {
     projectSlugOrId,
     query,
     regionUrl,
+    host: explicitHost,
     naturalLanguageQuery,
     skipHeader = false,
   } = params;
 
-  const host = regionUrl ? new URL(regionUrl).host : "sentry.io";
+  const host =
+    explicitHost ?? (regionUrl ? new URL(regionUrl).host : "sentry.io");
+  const productName =
+    detectApiProvider(host) === "glitchtip" ? "GlitchTip" : "Sentry";
 
   let output = "";
 
@@ -78,17 +85,18 @@ export function formatIssueResults(params: FormatIssueResultsParams): string {
   );
 
   // Add view link with emoji and guidance text (like search_events)
-  output += `**View these results in Sentry**:\n${searchUrl}\n`;
-  output += `_Please share this link with the user to view the search results in their Sentry dashboard._\n\n`;
+  output += `**View these results in ${productName}**:\n${searchUrl}\n`;
+  output += `_Please share this link with the user to view the search results in their ${productName} dashboard._\n\n`;
 
   output += `Found **${issues.length}** issue${issues.length === 1 ? "" : "s"}:\n\n`;
 
   // Format each issue
   issues.forEach((issue, index) => {
+    const issueIdentifier = getIssueIdentifier(issue);
     // Generate issue URL using the utility function
-    const issueUrl = getIssueUrl(host, organizationSlug, issue.shortId);
+    const issueUrl = getIssueUrl(host, organizationSlug, issueIdentifier);
 
-    output += `## ${index + 1}. [${issue.shortId}](${issueUrl})\n\n`;
+    output += `## ${index + 1}. [${issueIdentifier}](${issueUrl})\n\n`;
     output += `**${issue.title}**\n\n`;
 
     // Issue metadata

@@ -1,3 +1,5 @@
+import { detectApiProvider } from "../provider";
+
 /**
  * Determines if a Sentry instance is SaaS or self-hosted based on the host.
  * @param host The Sentry host (e.g., "sentry.io" or "sentry.company.com")
@@ -19,6 +21,10 @@ export function getIssueUrl(
   organizationSlug: string,
   issueId: string,
 ): string {
+  if (detectApiProvider(host) === "glitchtip") {
+    return `https://${host}/issues/${issueId}`;
+  }
+
   const isSaas = isSentryHost(host);
   // For SaaS instances, always use sentry.io for web UI URLs regardless of region
   // Regional subdomains (e.g., us.sentry.io) are only for API endpoints
@@ -42,6 +48,21 @@ export function getIssuesSearchUrl(
   query?: string | null,
   projectSlugOrId?: string,
 ): string {
+  if (detectApiProvider(host) === "glitchtip") {
+    const params = new URLSearchParams();
+    if (projectSlugOrId) {
+      params.append("project", projectSlugOrId);
+    }
+    if (query) {
+      params.append("query", query);
+    }
+
+    const queryString = params.toString();
+    return queryString
+      ? `https://${host}/issues/?${queryString}`
+      : `https://${host}/issues/`;
+  }
+
   const isSaas = isSentryHost(host);
   // For SaaS instances, always use sentry.io for web UI URLs regardless of region
   // Regional subdomains (e.g., us.sentry.io) are only for API endpoints

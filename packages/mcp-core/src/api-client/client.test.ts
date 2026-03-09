@@ -641,6 +641,244 @@ describe("host configuration", () => {
   });
 });
 
+describe("glitchtip compatibility", () => {
+  let originalFetch: typeof globalThis.fetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("infers glitchtip provider from host", () => {
+    const apiService = new SentryApiService({
+      host: "glitchtip.example.com",
+    });
+
+    expect(apiService.isGlitchTipProvider()).toBe(true);
+    expect(apiService.getProductName()).toBe("GlitchTip");
+  });
+
+  it("uses /users/me/ for authenticated user requests", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {
+        get: (key: string) =>
+          key === "content-type" ? "application/json; charset=utf-8" : null,
+      },
+      json: () =>
+        Promise.resolve({
+          id: "1",
+          name: "Igor Benić",
+          email: "igor@example.com",
+          username: "igor@example.com",
+        }),
+    });
+
+    const apiService = new SentryApiService({
+      host: "glitchtip.example.com",
+      accessToken: "test-token",
+    });
+
+    const result = await apiService.getAuthenticatedUser();
+
+    expect(result.id).toBe("1");
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://glitchtip.example.com/api/0/users/me/",
+      expect.any(Object),
+    );
+  });
+
+  it("normalizes glitchtip issues and sort values", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {
+        get: (key: string) =>
+          key === "content-type" ? "application/json; charset=utf-8" : null,
+      },
+      json: () =>
+        Promise.resolve([
+          {
+            id: "57",
+            shortId: "",
+            title: "SubmitCompletedWorkOrder",
+            firstSeen: "2025-02-25T18:55:45.810Z",
+            lastSeen: "2026-03-09T17:44:28.801Z",
+            count: "82005",
+            userCount: 0,
+            permalink: "Not implemented",
+            project: {
+              id: "3",
+              platform: "csharp",
+              slug: "wastewiseweb",
+              name: "WasteWiseWeb",
+            },
+            status: "unresolved",
+            culprit: "",
+            type: "default",
+          },
+        ]),
+    });
+
+    const apiService = new SentryApiService({
+      host: "glitchtip.example.com",
+      accessToken: "test-token",
+    });
+
+    const result = await apiService.listIssues({
+      organizationSlug: "ib-tehnologije-doo",
+      sortBy: "date",
+      limit: 5,
+    });
+
+    expect(result[0]?.shortId).toBe("57");
+    expect(result[0]?.permalink).toBe(
+      "https://glitchtip.example.com/issues/57",
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("sort=-last_seen"),
+      expect.any(Object),
+    );
+  });
+
+  it("uses numeric issue routes for glitchtip issue details", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {
+        get: (key: string) =>
+          key === "content-type" ? "application/json; charset=utf-8" : null,
+      },
+      json: () =>
+        Promise.resolve({
+          id: "57",
+          shortId: "",
+          title: "SubmitCompletedWorkOrder",
+          firstSeen: "2025-02-25T18:55:45.810Z",
+          lastSeen: "2026-03-09T17:44:28.801Z",
+          count: "82005",
+          userCount: 0,
+          permalink: "Not implemented",
+          project: {
+            id: "3",
+            platform: "csharp",
+            slug: "wastewiseweb",
+            name: "WasteWiseWeb",
+          },
+          status: "unresolved",
+          culprit: "",
+          type: "default",
+        }),
+    });
+
+    const apiService = new SentryApiService({
+      host: "glitchtip.example.com",
+      accessToken: "test-token",
+    });
+
+    await apiService.getIssue({
+      organizationSlug: "ib-tehnologije-doo",
+      issueId: "57",
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://glitchtip.example.com/api/0/issues/57/",
+      expect.any(Object),
+    );
+  });
+
+  it("normalizes glitchtip teams, client keys, and releases", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {
+          get: (key: string) =>
+            key === "content-type" ? "application/json; charset=utf-8" : null,
+        },
+        json: () =>
+          Promise.resolve([
+            {
+              id: "2",
+              slug: "ib-tehnologije",
+            },
+          ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {
+          get: (key: string) =>
+            key === "content-type" ? "application/json; charset=utf-8" : null,
+        },
+        json: () =>
+          Promise.resolve([
+            {
+              id: "07cac6ff-7d83-44bc-8015-5712ecff0acf",
+              name: "",
+              dateCreated: "2025-02-25T18:26:11.662Z",
+              dsn: {
+                public:
+                  "https://07cac6ff7d8344bc80155712ecff0acf@glitchtip.example.com/3",
+              },
+              public: "07cac6ff-7d83-44bc-8015-5712ecff0acf",
+            },
+          ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {
+          get: (key: string) =>
+            key === "content-type" ? "application/json; charset=utf-8" : null,
+        },
+        json: () =>
+          Promise.resolve([
+            {
+              version: "Presentation@1.0.0+971dc6",
+              shortVersion: "Presentation@1.0.0+971dc6",
+              dateCreated: "2026-03-04T11:03:32.486Z",
+              dateReleased: null,
+              projects: [{ name: "WasteWiseWeb", slug: "wastewiseweb" }],
+            },
+          ]),
+      });
+
+    const apiService = new SentryApiService({
+      host: "glitchtip.example.com",
+      accessToken: "test-token",
+    });
+
+    const teams = await apiService.listTeams("ib-tehnologije-doo");
+    const clientKeys = await apiService.listClientKeys({
+      organizationSlug: "ib-tehnologije-doo",
+      projectSlug: "wastewiseweb",
+    });
+    const releases = await apiService.listReleases({
+      organizationSlug: "ib-tehnologije-doo",
+      projectSlug: "wastewiseweb",
+    });
+
+    expect(teams[0]?.name).toBe("ib-tehnologije");
+    expect(clientKeys[0]?.isActive).toBe(true);
+    expect(clientKeys[0]?.name).toBe("07cac6ff-7d83-44bc-8015-5712ecff0acf");
+    expect(releases[0]?.id).toBe("Presentation@1.0.0+971dc6");
+    expect(releases[0]?.newGroups).toBe(0);
+    expect(releases[0]?.projects[0]?.id).toBe("wastewiseweb");
+  });
+});
+
 describe("Content-Type validation", () => {
   it("should throw error when receiving HTML instead of JSON", async () => {
     const htmlContent = `<!DOCTYPE html>

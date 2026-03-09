@@ -5,6 +5,7 @@ describe("cli/parseArgv", () => {
   it("parses known flags and short aliases", () => {
     const parsed = parseArgv([
       "--access-token=tok",
+      "--provider=glitchtip",
       "--host=sentry.io",
       "--url=https://example.com",
       "--mcp-url=https://mcp.example.com",
@@ -15,6 +16,7 @@ describe("cli/parseArgv", () => {
       "-v",
     ]);
     expect(parsed.accessToken).toBe("tok");
+    expect(parsed.provider).toBe("glitchtip");
     expect(parsed.host).toBe("sentry.io");
     expect(parsed.url).toBe("https://example.com");
     expect(parsed.mcpUrl).toBe("https://mcp.example.com");
@@ -47,12 +49,14 @@ describe("cli/parseEnv", () => {
   it("parses environment variables including skills", () => {
     const env = parseEnv({
       SENTRY_ACCESS_TOKEN: "envtok",
+      SENTRY_PROVIDER: "glitchtip",
       SENTRY_HOST: "envhost",
       MCP_URL: "envmcp",
       SENTRY_DSN: "envdsn",
       MCP_SKILLS: "inspect,triage",
     } as any);
     expect(env.accessToken).toBe("envtok");
+    expect(env.provider).toBe("glitchtip");
     expect(env.host).toBe("envhost");
     expect(env.mcpUrl).toBe("envmcp");
     expect(env.sentryDsn).toBe("envdsn");
@@ -72,12 +76,14 @@ describe("cli/merge", () => {
   it("applies precedence: CLI over env", () => {
     const env = parseEnv({
       SENTRY_ACCESS_TOKEN: "envtok",
+      SENTRY_PROVIDER: "sentry",
       SENTRY_HOST: "envhost",
       MCP_URL: "envmcp",
       SENTRY_DSN: "envdsn",
     } as any);
     const cli = parseArgv([
       "--access-token=clitok",
+      "--provider=glitchtip",
       "--host=clihost",
       "--mcp-url=climcp",
       "--sentry-dsn=clidsn",
@@ -85,6 +91,7 @@ describe("cli/merge", () => {
     ]);
     const merged = merge(cli, env);
     expect(merged.accessToken).toBe("clitok");
+    expect(merged.provider).toBe("glitchtip");
     expect(merged.host).toBe("clihost");
     expect(merged.mcpUrl).toBe("climcp");
     expect(merged.sentryDsn).toBe("clidsn");

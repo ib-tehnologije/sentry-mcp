@@ -273,5 +273,23 @@ describe("formatIssueResults", () => {
         "
       `);
     });
+
+    it("uses glitchtip-friendly links and numeric fallback IDs", () => {
+      const result = formatIssueResults({
+        organizationSlug: "ib-tehnologije-doo",
+        host: "glitchtip.example.com",
+        issues: [
+          createPerformanceIssue({
+            id: "57",
+            shortId: "",
+            title: "SubmitCompletedWorkOrder",
+          }),
+        ],
+      });
+
+      expect(result).toContain("View these results in GlitchTip");
+      expect(result).toContain("https://glitchtip.example.com/issues/");
+      expect(result).toContain("[57](https://glitchtip.example.com/issues/57)");
+    });
   });
 });

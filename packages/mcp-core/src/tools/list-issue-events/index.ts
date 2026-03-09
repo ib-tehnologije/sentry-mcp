@@ -134,17 +134,19 @@ export default defineTool({
     const explorerQuery = params.query
       ? `issue:${issueId} ${params.query}`
       : `issue:${issueId}`;
-    const explorerUrl = apiService.getEventsExplorerUrl(
-      organizationSlug,
-      explorerQuery,
-      undefined, // projectId
-      "errors",
-      RECOMMENDED_FIELDS,
-      params.sort,
-      [],
-      [],
-      params.statsPeriod,
-    );
+    const explorerUrl = apiService.isGlitchTipProvider()
+      ? apiService.getIssueUrl(organizationSlug, issueId)
+      : apiService.getEventsExplorerUrl(
+          organizationSlug,
+          explorerQuery,
+          undefined, // projectId
+          "errors",
+          RECOMMENDED_FIELDS,
+          params.sort,
+          [],
+          [],
+          params.statsPeriod,
+        );
 
     return formatErrorResults({
       eventData: eventsResponse,

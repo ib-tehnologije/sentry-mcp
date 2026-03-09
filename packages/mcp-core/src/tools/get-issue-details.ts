@@ -4,6 +4,7 @@ import { defineTool } from "../internal/tool-helpers/define";
 import { apiServiceFromContext } from "../internal/tool-helpers/api";
 import {
   parseIssueParams,
+  getIssueIdentifier,
   formatIssueOutput,
 } from "../internal/tool-helpers/issue";
 import { enhanceNotFoundError } from "../internal/tool-helpers/enhance-error";
@@ -116,13 +117,14 @@ export default defineTool({
         }
         issue = found;
       }
+      const issueIdentifier = getIssueIdentifier(issue);
       // For this call, we might want to provide context if it fails
       const [{ event, performanceTrace }, { autofixState, externalIssues }] =
         await Promise.all([
           apiService
             .getEventForIssue({
               organizationSlug: orgSlug,
-              issueId: issue.shortId,
+              issueId: issueIdentifier,
               eventId,
             })
             // Optionally enhance 404 errors with parameter context
@@ -130,7 +132,7 @@ export default defineTool({
               if (error instanceof ApiNotFoundError) {
                 throw enhanceNotFoundError(error, {
                   organizationSlug: orgSlug,
-                  issueId: issue.shortId,
+                  issueId: issueIdentifier,
                   eventId,
                 });
               }
@@ -147,7 +149,7 @@ export default defineTool({
           fetchIssueEnrichmentData({
             apiService,
             organizationSlug: orgSlug,
-            issueId: issue.shortId,
+            issueId: issueIdentifier,
           }),
         ]);
 
@@ -202,12 +204,14 @@ export default defineTool({
       throw error;
     }
 
+    const issueIdentifier = getIssueIdentifier(issue);
+
     const [{ event, performanceTrace }, { autofixState, externalIssues }] =
       await Promise.all([
         apiService
           .getLatestEventForIssue({
             organizationSlug: orgSlug,
-            issueId: issue.shortId,
+            issueId: issueIdentifier,
           })
           .then(async (event) => ({
             event,
@@ -220,7 +224,7 @@ export default defineTool({
         fetchIssueEnrichmentData({
           apiService,
           organizationSlug: orgSlug,
-          issueId: issue.shortId,
+          issueId: issueIdentifier,
         }),
       ]);
 

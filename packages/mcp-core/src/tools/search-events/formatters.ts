@@ -46,6 +46,7 @@ export function formatErrorResults(params: FormatEventResultsParams): string {
   } = params;
 
   let output = `# Search Results for "${naturalLanguageQuery}"\n\n`;
+  const productName = apiService.getProductName();
 
   // Check if this is an aggregate query and adjust display instructions
   if (isAggregateQuery(fields)) {
@@ -59,8 +60,8 @@ export function formatErrorResults(params: FormatEventResultsParams): string {
     output += `\n\n`;
   }
 
-  output += `**View these results in Sentry**:\n${explorerUrl}\n`;
-  output += `_Please share this link with the user to view the search results in their Sentry dashboard._\n\n`;
+  output += `**View these results in ${productName}**:\n${explorerUrl}\n`;
+  output += `_Please share this link with the user to view the search results in their ${productName} dashboard._\n\n`;
 
   if (eventData.length === 0) {
     logInfo(`No error events found for query: ${naturalLanguageQuery}`, {
@@ -170,6 +171,7 @@ export function formatLogResults(params: FormatEventResultsParams): string {
   } = params;
 
   let output = `# Search Results for "${naturalLanguageQuery}"\n\n`;
+  const productName = apiService.getProductName();
 
   // Check if this is an aggregate query and adjust display instructions
   if (isAggregateQuery(fields)) {
@@ -183,8 +185,8 @@ export function formatLogResults(params: FormatEventResultsParams): string {
     output += `\n\n`;
   }
 
-  output += `**View these results in Sentry**:\n${explorerUrl}\n`;
-  output += `_Please share this link with the user to view the search results in their Sentry dashboard._\n\n`;
+  output += `**View these results in ${productName}**:\n${explorerUrl}\n`;
+  output += `_Please share this link with the user to view the search results in their ${productName} dashboard._\n\n`;
 
   if (eventData.length === 0) {
     logInfo(`No log events found for query: ${naturalLanguageQuery}`, {
@@ -316,6 +318,7 @@ export function formatSpanResults(params: FormatEventResultsParams): string {
   } = params;
 
   let output = `# Search Results for "${naturalLanguageQuery}"\n\n`;
+  const productName = apiService.getProductName();
 
   // Check if this is an aggregate query and adjust display instructions
   if (isAggregateQuery(fields)) {
@@ -329,8 +332,8 @@ export function formatSpanResults(params: FormatEventResultsParams): string {
     output += `\n\n`;
   }
 
-  output += `**View these results in Sentry**:\n${explorerUrl}\n`;
-  output += `_Please share this link with the user to view the search results in their Sentry dashboard._\n\n`;
+  output += `**View these results in ${productName}**:\n${explorerUrl}\n`;
+  output += `_Please share this link with the user to view the search results in their ${productName} dashboard._\n\n`;
 
   if (eventData.length === 0) {
     logInfo(`No span events found for query: ${naturalLanguageQuery}`, {

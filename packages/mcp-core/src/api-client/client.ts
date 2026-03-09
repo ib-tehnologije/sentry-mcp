@@ -1,8 +1,10 @@
 import {
   getIssueUrl as getIssueUrlUtil,
+  getIssuesSearchUrl as getIssuesSearchUrlUtil,
   getTraceUrl as getTraceUrlUtil,
   isSentryHost,
 } from "../utils/url-utils";
+import { detectApiProvider, type ApiProvider } from "../provider";
 import { logIssue, logWarn } from "../telem/logging";
 import {
   OrganizationListSchema,
@@ -99,6 +101,10 @@ type RequestOptions = {
   host?: string;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 /**
  * Sentry API client service for interacting with Sentry's REST API.
  *
@@ -145,6 +151,8 @@ type RequestOptions = {
  */
 export class SentryApiService {
   private accessToken: string | null;
+  private readonly explicitProvider?: ApiProvider;
+  private provider: ApiProvider;
   protected host: string;
   protected apiPrefix: string;
 
@@ -160,11 +168,15 @@ export class SentryApiService {
   constructor({
     accessToken = null,
     host = "sentry.io",
+    provider,
   }: {
     accessToken?: string | null;
     host?: string;
+    provider?: ApiProvider;
   }) {
     this.accessToken = accessToken;
+    this.explicitProvider = provider;
+    this.provider = provider ?? detectApiProvider(host);
     this.host = host;
     this.apiPrefix = `https://${host}/api/0`;
   }
@@ -179,7 +191,16 @@ export class SentryApiService {
    */
   setHost(host: string) {
     this.host = host;
+    this.provider = this.explicitProvider ?? detectApiProvider(host);
     this.apiPrefix = `https://${this.host}/api/0`;
+  }
+
+  isGlitchTipProvider(): boolean {
+    return this.provider === "glitchtip";
+  }
+
+  getProductName(): string {
+    return this.isGlitchTipProvider() ? "GlitchTip" : "Sentry";
   }
 
   /**
@@ -495,6 +516,19 @@ export class SentryApiService {
     return getIssueUrlUtil(this.host, organizationSlug, issueId);
   }
 
+  getIssuesSearchUrl(
+    organizationSlug: string,
+    query?: string | null,
+    projectSlugOrId?: string,
+  ): string {
+    return getIssuesSearchUrlUtil(
+      this.host,
+      organizationSlug,
+      query,
+      projectSlugOrId,
+    );
+  }
+
   /**
    * Generates a Sentry trace URL for performance investigation.
    *
@@ -512,6 +546,187 @@ export class SentryApiService {
    */
   getTraceUrl(organizationSlug: string, traceId: string): string {
     return getTraceUrlUtil(this.host, organizationSlug, traceId);
+  }
+
+  private normalizeTeamPayload(payload: unknown): unknown {
+    if (!this.isGlitchTipProvider()) {
+      return payload;
+    }
+
+    const normalizeTeam = (team: unknown) => {
+      if (!isRecord(team)) {
+        return team;
+      }
+
+      return {
+        ...team,
+        name:
+          typeof team.name === "string" && team.name.trim().length > 0
+            ? team.name
+            : typeof team.slug === "string"
+              ? team.slug
+              : "",
+      };
+    };
+
+    return Array.isArray(payload)
+      ? payload.map(normalizeTeam)
+      : normalizeTeam(payload);
+  }
+
+  private normalizeClientKeyPayload(payload: unknown): unknown {
+    if (!this.isGlitchTipProvider()) {
+      return payload;
+    }
+
+    const normalizeKey = (clientKey: unknown) => {
+      if (!isRecord(clientKey)) {
+        return clientKey;
+      }
+
+      const fallbackNameCandidates = [
+        clientKey.name,
+        clientKey.label,
+        clientKey.public,
+        clientKey.id,
+      ];
+      const fallbackName =
+        fallbackNameCandidates.find(
+          (candidate) =>
+            typeof candidate === "string" && candidate.trim().length > 0,
+        ) ?? "";
+
+      return {
+        ...clientKey,
+        name: fallbackName,
+        isActive:
+          typeof clientKey.isActive === "boolean" ? clientKey.isActive : true,
+      };
+    };
+
+    return Array.isArray(payload)
+      ? payload.map(normalizeKey)
+      : normalizeKey(payload);
+  }
+
+  private normalizeReleasePayload(payload: unknown): unknown {
+    if (!this.isGlitchTipProvider() || !Array.isArray(payload)) {
+      return payload;
+    }
+
+    return payload.map((release) => {
+      if (!isRecord(release)) {
+        return release;
+      }
+
+      const projects = Array.isArray(release.projects)
+        ? release.projects.map((project) => {
+            if (!isRecord(project)) {
+              return project;
+            }
+
+            return {
+              ...project,
+              id:
+                project.id ??
+                (typeof project.slug === "string"
+                  ? project.slug
+                  : project.name),
+              slug:
+                typeof project.slug === "string"
+                  ? project.slug
+                  : String(project.id ?? project.name ?? ""),
+              name:
+                typeof project.name === "string"
+                  ? project.name
+                  : String(project.slug ?? project.id ?? ""),
+            };
+          })
+        : [];
+
+      return {
+        ...release,
+        id: release.id ?? release.version,
+        firstEvent: release.firstEvent ?? null,
+        lastEvent: release.lastEvent ?? null,
+        newGroups:
+          typeof release.newGroups === "number" ? release.newGroups : 0,
+        lastCommit: release.lastCommit ?? null,
+        lastDeploy: release.lastDeploy ?? null,
+        projects,
+      };
+    });
+  }
+
+  private normalizeIssuePayload(
+    payload: unknown,
+    organizationSlug: string,
+  ): unknown {
+    if (!this.isGlitchTipProvider()) {
+      return payload;
+    }
+
+    const normalizeIssue = (issue: unknown) => {
+      if (!isRecord(issue)) {
+        return issue;
+      }
+
+      const fallbackIssueId =
+        typeof issue.shortId === "string" && issue.shortId.trim().length > 0
+          ? issue.shortId
+          : String(issue.id ?? "");
+
+      const permalink =
+        typeof issue.permalink === "string" &&
+        issue.permalink.startsWith("http")
+          ? issue.permalink
+          : this.getIssueUrl(organizationSlug, fallbackIssueId);
+
+      return {
+        ...issue,
+        shortId: fallbackIssueId,
+        permalink,
+      };
+    };
+
+    return Array.isArray(payload)
+      ? payload.map(normalizeIssue)
+      : normalizeIssue(payload);
+  }
+
+  private getIssueApiPath(
+    organizationSlug: string,
+    issueId: string,
+    suffix = "",
+  ): string {
+    if (this.isGlitchTipProvider()) {
+      return `/issues/${issueId}/${suffix}`;
+    }
+
+    return `/organizations/${organizationSlug}/issues/${issueId}/${suffix}`;
+  }
+
+  private getIssueSort(
+    sortBy?: "user" | "freq" | "date" | "new",
+  ): string | undefined {
+    if (!sortBy) {
+      return undefined;
+    }
+
+    if (!this.isGlitchTipProvider()) {
+      return sortBy;
+    }
+
+    switch (sortBy) {
+      case "date":
+        return "-last_seen";
+      case "new":
+        return "-first_seen";
+      case "freq":
+        return "-count";
+      case "user":
+        return "-priority";
+    }
   }
 
   // ================================================================================
@@ -820,6 +1035,11 @@ export class SentryApiService {
    * @throws {ApiError} If authentication fails or user not found
    */
   async getAuthenticatedUser(opts?: RequestOptions): Promise<User> {
+    if (this.isGlitchTipProvider()) {
+      const body = await this.requestJSON("/users/me/", undefined, opts);
+      return UserSchema.parse(body);
+    }
+
     // Auth endpoints only exist on the main API server, never on regional endpoints
     let authHost: string | undefined;
 
@@ -954,7 +1174,9 @@ export class SentryApiService {
     const queryString = queryParams.toString();
     const path = `/organizations/${organizationSlug}/teams/?${queryString}`;
 
-    const body = await this.requestJSON(path, undefined, opts);
+    const body = this.normalizeTeamPayload(
+      await this.requestJSON(path, undefined, opts),
+    );
     return TeamListSchema.parse(body);
   }
 
@@ -978,13 +1200,15 @@ export class SentryApiService {
     },
     opts?: RequestOptions,
   ): Promise<Team> {
-    const body = await this.requestJSON(
-      `/organizations/${organizationSlug}/teams/`,
-      {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      },
-      opts,
+    const body = this.normalizeTeamPayload(
+      await this.requestJSON(
+        `/organizations/${organizationSlug}/teams/`,
+        {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        },
+        opts,
+      ),
     );
     return TeamSchema.parse(body);
   }
@@ -1194,15 +1418,17 @@ export class SentryApiService {
     },
     opts?: RequestOptions,
   ): Promise<ClientKey> {
-    const body = await this.requestJSON(
-      `/projects/${organizationSlug}/${projectSlug}/keys/`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-        }),
-      },
-      opts,
+    const body = this.normalizeClientKeyPayload(
+      await this.requestJSON(
+        `/projects/${organizationSlug}/${projectSlug}/keys/`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name,
+          }),
+        },
+        opts,
+      ),
     );
     return ClientKeySchema.parse(body);
   }
@@ -1226,10 +1452,12 @@ export class SentryApiService {
     },
     opts?: RequestOptions,
   ): Promise<ClientKeyList> {
-    const body = await this.requestJSON(
-      `/projects/${organizationSlug}/${projectSlug}/keys/`,
-      undefined,
-      opts,
+    const body = this.normalizeClientKeyPayload(
+      await this.requestJSON(
+        `/projects/${organizationSlug}/${projectSlug}/keys/`,
+        undefined,
+        opts,
+      ),
     );
     return ClientKeyListSchema.parse(body);
   }
@@ -1279,10 +1507,12 @@ export class SentryApiService {
       ? `/projects/${organizationSlug}/${projectSlug}/releases/`
       : `/organizations/${organizationSlug}/releases/`;
 
-    const body = await this.requestJSON(
-      searchQuery.toString() ? `${path}?${searchQuery.toString()}` : path,
-      undefined,
-      opts,
+    const body = this.normalizeReleasePayload(
+      await this.requestJSON(
+        searchQuery.toString() ? `${path}?${searchQuery.toString()}` : path,
+        undefined,
+        opts,
+      ),
     );
     return ReleaseListSchema.parse(body);
   }
@@ -1524,7 +1754,8 @@ export class SentryApiService {
 
     const queryParams = new URLSearchParams();
     queryParams.set("per_page", String(limit));
-    if (sortBy) queryParams.set("sort", sortBy);
+    const resolvedSort = this.getIssueSort(sortBy);
+    if (resolvedSort) queryParams.set("sort", resolvedSort);
     queryParams.set("statsPeriod", "24h");
     queryParams.set("query", sentryQuery.join(" "));
 
@@ -1534,7 +1765,10 @@ export class SentryApiService {
       ? `/projects/${organizationSlug}/${projectSlug}/issues/?${queryParams.toString()}`
       : `/organizations/${organizationSlug}/issues/?${queryParams.toString()}`;
 
-    const body = await this.requestJSON(apiUrl, undefined, opts);
+    const body = this.normalizeIssuePayload(
+      await this.requestJSON(apiUrl, undefined, opts),
+      organizationSlug,
+    );
     return IssueListSchema.parse(body);
   }
 
@@ -1548,10 +1782,13 @@ export class SentryApiService {
     },
     opts?: RequestOptions,
   ): Promise<Issue> {
-    const body = await this.requestJSON(
-      `/organizations/${organizationSlug}/issues/${issueId}/`,
-      undefined,
-      opts,
+    const body = this.normalizeIssuePayload(
+      await this.requestJSON(
+        this.getIssueApiPath(organizationSlug, issueId),
+        undefined,
+        opts,
+      ),
+      organizationSlug,
     );
     return IssueSchema.parse(body);
   }
@@ -1594,7 +1831,7 @@ export class SentryApiService {
     opts?: RequestOptions,
   ): Promise<IssueTagValues> {
     const body = await this.requestJSON(
-      `/organizations/${organizationSlug}/issues/${issueId}/tags/${tagKey}/`,
+      this.getIssueApiPath(organizationSlug, issueId, `tags/${tagKey}/`),
       undefined,
       opts,
     );
@@ -1624,7 +1861,7 @@ export class SentryApiService {
     opts?: RequestOptions,
   ): Promise<ExternalIssueList> {
     const body = await this.requestJSON(
-      `/organizations/${organizationSlug}/issues/${issueId}/external-issues/`,
+      this.getIssueApiPath(organizationSlug, issueId, "external-issues/"),
       undefined,
       opts,
     );
@@ -1644,7 +1881,7 @@ export class SentryApiService {
     opts?: RequestOptions,
   ): Promise<Event> {
     const body = await this.requestJSON(
-      `/organizations/${organizationSlug}/issues/${issueId}/events/${eventId}/`,
+      this.getIssueApiPath(organizationSlug, issueId, `events/${eventId}/`),
       undefined,
       opts,
     );
@@ -1788,6 +2025,13 @@ export class SentryApiService {
     }
 
     const apiUrl = `/organizations/${organizationSlug}/issues/${issueId}/events/?${params.toString()}`;
+    if (this.isGlitchTipProvider()) {
+      return await this.requestJSON(
+        `/issues/${issueId}/events/?${params.toString()}`,
+        undefined,
+        opts,
+      );
+    }
     return await this.requestJSON(apiUrl, undefined, opts);
   }
 

@@ -159,6 +159,9 @@ export default defineTool({
         organizationSlug: params.organizationSlug,
         projectSlugOrId: params.projectSlugOrId ?? undefined,
         query: translatedQuery.query,
+        host: params.regionUrl
+          ? new URL(params.regionUrl).host
+          : context.sentryHost,
         regionUrl: params.regionUrl ?? undefined,
         naturalLanguageQuery: params.naturalLanguageQuery,
         skipHeader: true,
@@ -170,6 +173,9 @@ export default defineTool({
         organizationSlug: params.organizationSlug,
         projectSlugOrId: params.projectSlugOrId ?? undefined,
         query: translatedQuery.query,
+        host: params.regionUrl
+          ? new URL(params.regionUrl).host
+          : context.sentryHost,
         regionUrl: params.regionUrl ?? undefined,
         naturalLanguageQuery: params.naturalLanguageQuery,
         skipHeader: false,

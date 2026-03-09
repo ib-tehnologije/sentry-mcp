@@ -10,6 +10,7 @@ Required:
   --access-token <token>  Sentry User Auth Token with API access
 
 Common optional flags:
+  --provider <provider>   API provider: sentry or glitchtip (auto-detected from host by default)
   --host <host>           Change Sentry host (self-hosted)
   --sentry-dsn <dsn>      Override DSN used for telemetry reporting
   --agent                 Agent mode: only expose use_sentry tool (for AI agents)
@@ -34,6 +35,7 @@ All skills: ${allSkills.join(", ")}
 
 Environment variables:
   SENTRY_ACCESS_TOKEN     Sentry auth token (alternative to --access-token)
+  SENTRY_PROVIDER         API provider override: sentry or glitchtip
   OPENAI_API_KEY          OpenAI API key for AI-powered search tools
   ANTHROPIC_API_KEY       Anthropic API key for AI-powered search tools
   EMBEDDED_AGENT_PROVIDER Provider override: openai or anthropic
@@ -42,6 +44,7 @@ Environment variables:
 Examples:
   ${packageName} --access-token=TOKEN
   ${packageName} --access-token=TOKEN --skills=inspect,triage
+  ${packageName} --access-token=TOKEN --provider=glitchtip --host=glitchtip.example.com
   ${packageName} --access-token=TOKEN --host=sentry.example.com
   ${packageName} --access-token=TOKEN --host=sentry.example.com --disable-skills=seer
   ${packageName} --access-token=TOKEN --agent-provider=anthropic`;

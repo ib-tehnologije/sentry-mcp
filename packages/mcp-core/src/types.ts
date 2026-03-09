@@ -6,6 +6,7 @@
  * extraction and handler registration.
  */
 import type { Skill } from "./skills";
+import type { ApiProvider } from "./provider";
 
 /**
  * Project capabilities indicating what data types the project has
@@ -42,6 +43,7 @@ export type TransportType = "stdio" | "http";
 
 export type ServerContext = {
   sentryHost?: string;
+  apiProvider?: ApiProvider;
   mcpUrl?: string;
   accessToken: string;
   openaiBaseUrl?: string;

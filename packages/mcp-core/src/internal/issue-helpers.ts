@@ -9,6 +9,15 @@
 
 import { UserInputError } from "../errors";
 
+export function getIssueIdentifier(issue: {
+  id: string | number;
+  shortId?: string | null;
+}): string {
+  const normalizedShortId =
+    typeof issue.shortId === "string" ? issue.shortId.trim() : "";
+  return normalizedShortId.length > 0 ? normalizedShortId : String(issue.id);
+}
+
 /**
  * Extracts the Sentry issue ID and organization slug from a full URL
  *

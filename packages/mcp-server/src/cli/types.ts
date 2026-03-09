@@ -1,7 +1,9 @@
 import type { Skill } from "@sentry/mcp-core/skills";
+import type { ApiProvider } from "@sentry/mcp-core/provider";
 
 export type CliArgs = {
   accessToken?: string;
+  provider?: string;
   host?: string;
   url?: string;
   mcpUrl?: string;
@@ -24,6 +26,7 @@ export type CliArgs = {
 
 export type EnvArgs = {
   accessToken?: string;
+  provider?: string;
   host?: string; // parsed from SENTRY_HOST or SENTRY_URL (raw value)
   url?: string; // raw URL if provided (SENTRY_URL)
   mcpUrl?: string;
@@ -37,6 +40,7 @@ export type EnvArgs = {
 
 export type MergedArgs = {
   accessToken?: string;
+  provider?: string;
   host?: string;
   url?: string;
   mcpUrl?: string;
@@ -59,6 +63,7 @@ export type MergedArgs = {
 
 export type ResolvedConfig = {
   accessToken: string;
+  apiProvider: ApiProvider;
   sentryHost: string;
   mcpUrl?: string;
   sentryDsn?: string;

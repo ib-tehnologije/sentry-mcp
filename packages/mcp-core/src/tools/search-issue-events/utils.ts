@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { SentryApiService } from "../../api-client";
 import { agentTool } from "../../internal/agents/tools/utils";
+import { parseIssueParams as parseSharedIssueParams } from "../../internal/issue-helpers";
 import { UserInputError } from "../../errors";
 import {
   ISSUE_EVENT_TAGS,
@@ -90,46 +91,15 @@ export function parseIssueParams(params: {
   issueId?: string;
   issueUrl?: string;
 }): { organizationSlug: string; issueId: string } {
-  // If issueUrl is provided, parse it
-  if (params.issueUrl) {
-    // Match both formats:
-    // https://sentry.io/organizations/my-org/issues/123/
-    // https://my-org.sentry.io/issues/123/
-    const orgMatch =
-      params.issueUrl.match(/\/organizations\/([^/]+)\/issues\/([^/?]+)/) ||
-      params.issueUrl.match(/https?:\/\/([^.]+)\.sentry\.io\/issues\/([^/?]+)/);
-
-    if (!orgMatch) {
-      throw new UserInputError(
-        `Invalid issue URL format. Expected format like:
-- https://sentry.io/organizations/my-org/issues/123/
-- https://my-org.sentry.io/issues/123/
-
-Received: ${params.issueUrl}`,
-      );
+  try {
+    return parseSharedIssueParams(params);
+  } catch (error) {
+    if (error instanceof UserInputError) {
+      throw error;
     }
-
-    return {
-      organizationSlug: orgMatch[1],
-      issueId: orgMatch[2],
-    };
-  }
-
-  // Otherwise, require both issueId and organizationSlug
-  if (!params.issueId) {
     throw new UserInputError(
       "Must provide either issueUrl or issueId parameter. Use issueUrl for convenience, or provide both issueId and organizationSlug.",
+      { cause: error },
     );
   }
-
-  if (!params.organizationSlug) {
-    throw new UserInputError(
-      "When using issueId parameter, organizationSlug is required. Alternatively, provide issueUrl which includes both organization and issue ID.",
-    );
-  }
-
-  return {
-    organizationSlug: params.organizationSlug,
-    issueId: params.issueId,
-  };
 }

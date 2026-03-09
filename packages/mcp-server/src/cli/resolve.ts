@@ -1,4 +1,5 @@
 import { ALL_SKILLS, parseSkills, type Skill } from "@sentry/mcp-core/skills";
+import { detectApiProvider, parseApiProvider } from "@sentry/mcp-core/provider";
 import {
   validateAndParseSentryUrlThrows,
   validateOpenAiBaseUrlThrows,
@@ -29,6 +30,17 @@ export function finalize(input: MergedArgs): ResolvedConfig {
   } else if (input.host) {
     validateSentryHostThrows(input.host);
     sentryHost = input.host;
+  }
+
+  let apiProvider = detectApiProvider(sentryHost);
+  if (input.provider) {
+    const resolvedProvider = parseApiProvider(input.provider);
+    if (!resolvedProvider) {
+      throw new Error(
+        `Error: Invalid provider "${input.provider}". Must be "sentry" or "glitchtip".`,
+      );
+    }
+    apiProvider = resolvedProvider;
   }
 
   // Skills resolution
@@ -105,6 +117,7 @@ export function finalize(input: MergedArgs): ResolvedConfig {
 
   return {
     accessToken: input.accessToken,
+    apiProvider,
     sentryHost,
     mcpUrl: input.mcpUrl,
     sentryDsn: input.sentryDsn,

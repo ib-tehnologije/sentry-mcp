@@ -1,3 +1,4 @@
+import type { ApiProvider } from "../provider";
 import whoami from "./whoami";
 import findOrganizations from "./find-organizations";
 import findTeams from "./find-teams";
@@ -45,6 +46,30 @@ export const SIMPLE_REPLACEMENT_TOOLS = [
   "list_events",
   "list_issue_events",
 ] as const;
+
+export const UNSUPPORTED_TOOLS_BY_PROVIDER: Partial<
+  Record<ApiProvider, readonly string[]>
+> = {
+  glitchtip: [
+    "use_sentry",
+    "get_issue_tag_values",
+    "get_trace_details",
+    "get_event_attachment",
+    "update_issue",
+    "search_events",
+    "create_team",
+    "create_project",
+    "update_project",
+    "create_dsn",
+    "analyze_issue_with_seer",
+    "search_docs",
+    "get_doc",
+    "search_issues",
+    "search_issue_events",
+    "list_events",
+    "get_sentry_resource",
+  ],
+};
 
 // Default export: object mapping tool names to tools
 export default {
